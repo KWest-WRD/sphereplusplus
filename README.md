@@ -8,6 +8,9 @@ This C++ wrapper for the Azure Sphere API can be easily imported into your Azure
 Sphere project. The wrapper abstracts the following functionality (so far):
 
 * Event loop;
+* Updates notifications;
+* Power management;
+* Application watchdog;
 * GPIOs;
 * Timers;
 
@@ -30,8 +33,10 @@ set(SPHERE_PLUS_PLUS_SOURCE
     sphereplusplus/abort.hh
     sphereplusplus/application.hh
     sphereplusplus/delegate.hh
+    sphereplusplus/enums.hh
     sphereplusplus/gpio.hh
     sphereplusplus/sphereplusplus.cc
+    sphereplusplus/std.hh
     sphereplusplus/timer.hh)
 ```
 
@@ -42,3 +47,6 @@ set(SPHERE_PLUS_PLUS_SOURCE
 ```
 target_include_directories (${PROJECT_NAME} PRIVATE .)
 ```
+
+5) Modify the application manifest to enable application capabilities for the
+   features used by the application.
