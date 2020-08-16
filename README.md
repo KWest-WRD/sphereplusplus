@@ -13,6 +13,7 @@ Sphere project. The wrapper abstracts the following functionality (so far):
 * Application watchdog;
 * GPIOs;
 * Timers;
+* Azure IoT Central;
 
 Setting up a project
 --------------------
@@ -45,7 +46,7 @@ set(SPHERE_PLUS_PLUS_SOURCE
    reachable:
 
 ```
-target_include_directories (${PROJECT_NAME} PRIVATE .)
+target_include_directories (${PROJECT_NAME} PRIVATE . sphereplusplus/cppcompat)
 ```
 
 5) Modify the application manifest to enable application capabilities for the
