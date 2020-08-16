@@ -67,16 +67,13 @@
  * @param[in] ... The return value when the condition is not satisfied.
  */
 #define AbortIfNot(cond, ...)                                           \
-    do                                                                  \
-    {                                                                   \
-        if (!(cond))                                                    \
-        {                                                               \
+    do {                                                                \
+        if (__builtin_expect(!(cond), 0)) {                             \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "AbortIfNot(" #cond ")\n");                         \
             return __VA_ARGS__;                                         \
         }                                                               \
-    }                                                                   \
-    while(0);
+    } while(0);
 
 /**
  * Assert that a condition is true, or exit from the current function.
@@ -87,16 +84,13 @@
  * @note See AbortIfNot() for more details.
  */
 #define AbortIf(cond, ...)                                              \
-    do                                                                  \
-    {                                                                   \
-        if ((cond))                                                     \
-        {                                                               \
+    do {                                                                \
+        if (__builtin_expect(!!(cond), 0)) {                            \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "AbortIf(" #cond ")\n");                            \
             return __VA_ARGS__;                                         \
         }                                                               \
-    }                                                                   \
-    while(0);
+    } while(0);
 
 /**
  * Assert that a value is positive, or exit from the current function. Print the
@@ -108,16 +102,13 @@
  * @note See AbortIfNot() for more details.
  */
 #define AbortErrno(cond, ...)                                           \
-    do                                                                  \
-    {                                                                   \
-        if ((cond) < 0)                                                 \
-        {                                                               \
+    do {                                                                \
+        if (__builtin_expect((cond) < 0, 0)) {                          \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "AbortErrno(" #cond "): %m\n");                     \
             return __VA_ARGS__;                                         \
         }                                                               \
-    }                                                                   \
-    while(0);
+    } while(0);
 
 /**
  * Assert that a pointer is non-null, or exit from the current function. Print
@@ -129,16 +120,13 @@
  * @note See AbortIfNot() for more details.
  */
 #define AbortErrnoPtr(ptr, ...)                                         \
-    do                                                                  \
-    {                                                                   \
-        if (!(ptr))                                                     \
-        {                                                               \
+    do {                                                                \
+        if (__builtin_expect((ptr) == nullptr, 0)) {                    \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "AbortErrno(" #ptr "): %m\n");                      \
             return __VA_ARGS__;                                         \
         }                                                               \
-    }                                                                   \
-    while(0);
+    } while(0);
 
 /**
  * Assert that a condition is true, or exit the application.
@@ -146,13 +134,10 @@
  * @param[in] cond The condition to assert.
  */
 #define Assert(cond)                                                    \
-    do                                                                  \
-    {                                                                   \
-        if (!(cond))                                                    \
-        {                                                               \
+    do {                                                                \
+        if (__builtin_expect(!(cond), 0)) {                             \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "Assert(" #cond ")\n");                             \
             exit(EXIT_FAILURE);                                         \
         }                                                               \
-    }                                                                   \
-    while(0);
+    } while(0);
