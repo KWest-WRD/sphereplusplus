@@ -55,13 +55,18 @@ class Application
 {
 public:
     /**
+     * The default watchdog period, in seconds.
+     */
+    static constexpr uint32_t k_defaultWatchdogPeriod = 60;
+
+    /**
      * @brief Constructor.
      */
     Application() :
         m_eventLoop(nullptr),
         m_running(false),
         m_sysevent(nullptr),
-        m_watchdogPeriod(60),
+        m_watchdogPeriod(k_defaultWatchdogPeriod),
         m_useWatchdog(false),
         m_oldTermAction(),
         m_oldAlrmAction()
@@ -137,7 +142,9 @@ public:
     {
         AbortIf(m_eventLoop, false);
 
-        AbortIfNot(setWatchdogPeriod(watchdog_period_s), false);
+        AbortIfNot(watchdog_period_s > 0, false);
+
+        m_watchdogPeriod = watchdog_period_s;
 
         AbortIfNot(init(features), false);
 
@@ -293,9 +300,13 @@ public:
     /**
      * @brief Pet the watchdog.
      * @return True on success.
+     * @note The application must be initialized with the Watchdog feature.
      */
     virtual bool petWatchdog() final
     {
+        AbortIfNot(m_eventLoop, false);
+        AbortIfNot(m_useWatchdog, false);
+
         alarm(m_watchdogPeriod);
 
         return true;
@@ -303,22 +314,23 @@ public:
 
     /**
      * @brief Change the period of the watchdog.
-     * @param[in] watchdog_period_s The watchdog period, in seconds.
+     * @param[in] period_s The watchdog period, in seconds.
      * @return True on success.
+     * @note The application must be initialized with the Watchdog feature.
      */
     virtual bool setWatchdogPeriod(const uint32_t period_s) final
     {
+        AbortIfNot(m_eventLoop, false);
+        AbortIfNot(m_useWatchdog, false);
+
         AbortIfNot(period_s > 0, false);
 
         m_watchdogPeriod = period_s;
 
         /*
-         * If the application is initialized, pet the watchdog immediately to
-         * start using the new period.
+         * Pet the watchdog immediately to start using the new period.
          */
-        if (m_eventLoop) {
-            AbortIfNot(petWatchdog(), false);
-        }
+        AbortIfNot(petWatchdog(), false);
 
         return true;
     }
