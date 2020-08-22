@@ -13,8 +13,9 @@
 #include <applibs/eventloop.h>
 
 #include <sphereplusplus/abort.hh>
-#include <sphereplusplus/application.hh>
 #include <sphereplusplus/delegate.hh>
+
+#include "internal.hh"
 
 /**
  * @brief One shot or periodic timers.
@@ -24,10 +25,8 @@ class Timer
 public:
     /**
      * @brief Constructor.
-     * @param[in] app The application.
      */
-    Timer(const Application &app) :
-        m_app(app),
+    Timer() :
         m_callback(),
         m_timerFd(-1),
         m_event(nullptr)
@@ -53,7 +52,7 @@ public:
         m_timerFd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
         AbortErrno(m_timerFd, false);
 
-        m_event = EventLoop_RegisterIo(m_app.m_eventLoop, m_timerFd,
+        m_event = EventLoop_RegisterIo(getEventLoop(), m_timerFd,
                                        EventLoop_Input, callback, this);
         AbortErrnoPtr(m_event, false);
 
@@ -68,7 +67,7 @@ public:
     {
         AbortIfNot(m_timerFd >= 0, false);
 
-        AbortErrno(EventLoop_UnregisterIo(m_app.m_eventLoop, m_event), false);
+        AbortErrno(EventLoop_UnregisterIo(getEventLoop(), m_event), false);
         m_event = nullptr;
 
         AbortErrno(close(m_timerFd), false);
@@ -209,11 +208,6 @@ private:
 
         timer->m_callback();
     }
-
-    /**
-     * The application (used to access the event loop).
-     */
-    const Application &m_app;
 
     /**
      * The timer's user callback.

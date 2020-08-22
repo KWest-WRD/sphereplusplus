@@ -444,5 +444,5 @@ private:
      */
     static Application *g_application;
 
-    friend class Timer;
+    friend EventLoop *getEventLoop();
 };
