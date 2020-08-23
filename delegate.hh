@@ -9,6 +9,8 @@
 
 #pragma once
 
+#include <sphereplusplus/abort.hh>
+
 template<typename T>
 class Delegate;
 
@@ -98,7 +100,7 @@ public:
     template <typename LAMBDA>
     void connect(const LAMBDA &instance)
     {
-        m_object = static_cast<void *>(&instance),
+        m_object = (void *)&instance,
         m_stub = lambda_stub<LAMBDA>;
     }
 

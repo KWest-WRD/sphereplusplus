@@ -111,6 +111,17 @@ public:
     }
 
     /**
+     * @brief Connect a lambda to the timer's expiry.
+     * @tparam LAMBDA The lambda type.
+     * @param[in] instance The closure for the lambda.
+     */
+    template <typename LAMBDA>
+    void connect(const LAMBDA &instance)
+    {
+        m_callback.connect<LAMBDA>(instance);
+    }
+
+    /**
      * @brief Start the timer in one-shot mode.
      * @param[in] delay_us The delay before the shot, in microseconds.
      * @return True on success.
