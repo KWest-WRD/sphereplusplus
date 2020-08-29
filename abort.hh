@@ -61,6 +61,31 @@
 #define __stringify(val)    __xstringify(val)
 
 /**
+ * Internal functions to print typed values.
+ *
+ * @param[in] a The first value.
+ * @param[in] b The second value.
+ * @{
+ */
+static inline void __print_values(const int a, const int b)
+{
+    Log_Debug("%d, %d", a, b);
+}
+
+static inline void __print_values(const unsigned int a, const unsigned int b)
+{
+    Log_Debug("%u, %u", a, b);
+}
+
+static inline void __print_values(const float a, const float b)
+{
+    Log_Debug("%f, %f", a, b);
+}
+/**
+ * @}
+ */
+
+/**
  * Assert that a condition is false, or exit from the current function.
  *
  * @param[in] cond The condition to assert "falseness" of.
@@ -88,6 +113,26 @@
         if (__builtin_expect(!!(cond), 0)) {                            \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
                     "AbortIf(" #cond ")\n");                            \
+            return __VA_ARGS__;                                         \
+        }                                                               \
+    } while(0);
+
+/**
+ * Assert that two values are equal, or exit from the current function.
+ *
+ * @param[in] a The first value.
+ * @param[in] b The second value.
+ * @param[in] ... The return value when the condition is not satisfied.
+ *
+ * @note See AbortIfNot() for more details.
+ */
+#define AbortIfNeq(a, b, ...) \
+    do {                                                                \
+        if (!__builtin_expect((a) == (b), 1)) {                         \
+            Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
+                    "AbortIfNeq(" #a ", " #b " (values: ");             \
+            __print_values(a, b);                                       \
+            Log_Debug("))\n");                                          \
             return __VA_ARGS__;                                         \
         }                                                               \
     } while(0);
