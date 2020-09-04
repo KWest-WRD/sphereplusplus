@@ -13,8 +13,6 @@
 
 #include "internal.hh"
 
-extern EventLoop *getEventLoop();
-
 /*
  * Define this symbol to keep the compiler happy with virtual destructors.
  */
@@ -139,6 +137,8 @@ const char *IOTHUB_CLIENT_CONNECTION_STATUS_REASONStrings(
     }
 }
 
+namespace SpherePlusPlus {
+
 EventLoop *getEventLoop()
 {
     AbortIfNot(Application::g_application, nullptr);
@@ -147,3 +147,5 @@ EventLoop *getEventLoop()
 }
 
 Application *Application::g_application = nullptr;
+
+} /* namespace SpherePlusPlus */

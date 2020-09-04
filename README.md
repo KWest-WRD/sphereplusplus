@@ -49,5 +49,12 @@ set(SPHERE_PLUS_PLUS_SOURCE
 target_include_directories (${PROJECT_NAME} PRIVATE . sphereplusplus/cppcompat)
 ```
 
-5) Modify the application manifest to enable application capabilities for the
+5) Add the `azureiot`, `applibs` and `pthread` libraries to the list of linked
+   libraries:
+
+```
+target_link_libraries (${PROJECT_NAME} azureiot applibs pthread gcc_s c)
+```
+
+6) Modify the application manifest to enable application capabilities for the
    features used by the application.

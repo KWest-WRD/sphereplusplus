@@ -12,6 +12,8 @@
 
 #include <applibs/gpio.h>
 
+namespace SpherePlusPlus {
+
 /**
  * @brief Base GPIO class.
  * @see GpioIn, GpioOut
@@ -189,3 +191,5 @@ private:
      */
     const GPIO_OutputMode m_gpioOutputMode;
 };
+
+} /* namespace SpherePlusPlus */

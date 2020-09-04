@@ -11,6 +11,8 @@
 
 #include <sphereplusplus/abort.hh>
 
+namespace SpherePlusPlus {
+
 template<typename T>
 class Delegate;
 
@@ -189,3 +191,5 @@ private:
      */
     stub_type m_stub;
 };
+
+} /* namespace SpherePlusPlus */

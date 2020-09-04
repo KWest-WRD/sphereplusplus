@@ -17,6 +17,8 @@
 
 #include "internal.hh"
 
+namespace SpherePlusPlus {
+
 /**
  * @brief One shot or periodic timers.
  */
@@ -235,3 +237,5 @@ private:
      */
     EventRegistration *m_event;
 };
+
+} /* namespace SpherePlusPlus */

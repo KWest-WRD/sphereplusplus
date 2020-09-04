@@ -46,6 +46,8 @@
 
 #include <applibs/log.h>
 
+namespace SpherePlusPlus {
+
 /**
  * Internal macro needed for stringification.
  *
@@ -186,3 +188,5 @@ static inline void __print_values(const float a, const float b)
             exit(EXIT_FAILURE);                                         \
         }                                                               \
     } while(0);
+
+} /* namespace SpherePlusPlus */

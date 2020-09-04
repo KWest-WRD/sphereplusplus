@@ -26,6 +26,8 @@
 #include <azureiot/iothub_client_options.h>
 #include <azureiot/iothub_device_client_ll.h>
 
+namespace SpherePlusPlus {
+
 /**
  * @brief Features supported by the application.
  */
@@ -840,3 +842,5 @@ private:
 
     friend EventLoop *getEventLoop();
 };
+
+} /* namespace SpherePlusPlus */

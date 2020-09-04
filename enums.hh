@@ -11,6 +11,8 @@
 
 #include <sphereplusplus/std.hh>
 
+namespace SpherePlusPlus {
+
 /**
  * @brief Type trait for an enum that does not support bitmask operators.
  * @tparam T The enum type.
@@ -110,3 +112,5 @@ isSet(T lhs, T rhs)
     return !!(static_cast<__underlying_type(T)>(lhs) &
               static_cast<__underlying_type(T)>(rhs));
 }
+
+} /* namespace SpherePlusPlus */
