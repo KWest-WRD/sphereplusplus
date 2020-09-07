@@ -1,0 +1,8 @@
+theme: jekyll-theme-midnight
+title: Sphere++
+show_downloads: True
+github:
+  owner_name: Matthieu Bucchianeri
+  zip_url: https://github.com/mbucchia/sphereplusplus/archive/master.zip
+  tar_url: https://github.com/mbucchia/sphereplusplus/archive/master.tar.gz
+google_analytics: UA-177415870-1
