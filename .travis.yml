@@ -1,0 +1,19 @@
+sudo: false
+
+branches:
+  only:
+    - master
+
+addons:
+  apt:
+    packages:
+      - doxygen
+      - graphviz
+
+script:
+  - doxygen Doxyfile
+
+deploy:
+  provider: script
+  skip_cleanup: true
+  script: bash .travis_publish

@@ -1,0 +1,26 @@
+#!/bin/bash
+# https://stackoverflow.com/questions/49431680/publish-releases-to-gh-pages-with-travis-without-deleting-previous-releases
+
+set -e
+
+BUILD_PATH=${PWD}
+
+# Checkout the branch to publish to.
+PUBLICATION_BRANCH=gh-pages
+pushd ${HOME}
+git clone --branch=${PUBLICATION_BRANCH} https://${GH_REPO_TOKEN}@github.com/${TRAVIS_REPO_SLUG} publish
+cd publish
+
+# Cleanup old pages and copy the new ones.
+git rm -r doxy || true
+rm -rf doxy
+cp -r ${BUILD_PATH}/html doxy
+git add doxy
+
+# Commit and push latest version.
+git config user.name  "Travis"
+git config user.email "travis@travis-ci.org"
+git commit -m "Updated distribution."
+git push -fq origin ${PUBLICATION_BRANCH}
+
+popd
