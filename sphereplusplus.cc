@@ -1,5 +1,5 @@
 /**
- * @file sphere++.cc
+ * @file sphereplusplus.cc
  * @author Matthieu Bucchianeri
  * @brief Common symbols.
  */

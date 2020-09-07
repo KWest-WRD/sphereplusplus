@@ -161,7 +161,7 @@ static inline void __print_values(const float a, const float b)
  * Assert that a pointer is non-null, or exit from the current function. Print
  * the errno string on error.
  *
- * @param[in] cond The condition to assert.
+ * @param[in] ptr The pointer to assert.
  * @param[in] ... The return value when the condition is not satisfied.
  *
  * @note See AbortIfNot() for more details.

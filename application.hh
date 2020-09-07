@@ -540,7 +540,7 @@ public:
 
     /**
      * @brief Change the period of the keepalive to Azure IoT.
-     * @param[in] keepalive_period_s The Azure IoT keepalive period, in seconds.
+     * @param[in] period_s The Azure IoT keepalive period, in seconds.
      * @return True on success.
      * @note The application must be initialized with the Keepalive feature.
      */
