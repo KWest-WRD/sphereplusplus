@@ -14,7 +14,10 @@
 
 #include <sphereplusplus/abort.hh>
 #include <sphereplusplus/enums.hh>
+#include <sphereplusplus/internal.hh>
+#include <sphereplusplus/json.hh>
 #include <sphereplusplus/timer.hh>
+#include <sphereplusplus/vector.hh>
 
 #include <applibs/eventloop.h>
 #include <applibs/networking.h>
@@ -101,6 +104,7 @@ public:
      * @brief Constructor.
      */
     Application() :
+        m_finalized(false),
         m_eventLoop(nullptr),
         m_running(false),
         m_sysevent(nullptr),
@@ -110,6 +114,9 @@ public:
         m_iotScopeId(),
         m_iotRetryInterval(k_initialIotRetryInterval),
         m_iotMaxRetryInterval(k_defaultIotMaxRetryInterval),
+        m_iotWorkTimer(),
+        m_properties(),
+        m_telemetry(),
         m_useIot(false),
         m_keepalivePeriod(k_defaultKeepalivePeriod),
         m_useKeepalive(false),
@@ -179,9 +186,15 @@ public:
         m_useKeepalive = isSet(features, ApplicationFeatures::Keepalive);
         if (m_useIot) {
             AbortIfNot(m_iotConnectTimer.init(), false);
-
             m_iotConnectTimer.connect<
                 Application, &Application::retryConnectIot>(*this);
+
+            AbortIfNot(m_iotWorkTimer.init(), false);
+            m_iotWorkTimer.connect<
+                Application, &Application::pollIot>(*this);
+
+            AbortIfNot(m_properties.init(), false);
+            AbortIfNot(m_telemetry.init(), false);
 
             AbortIfNot(tryConnectIot(), false);
         }
@@ -313,6 +326,19 @@ public:
     {
         AbortIfNot(m_eventLoop, false);
 
+        /*
+         * Mark initialization as finalized.
+         */
+        m_finalized = true;
+
+        if (m_useIot) {
+            /*
+             * Kickoff the worker timer.
+             */
+            AbortIfNot(m_iotWorkTimer.startPeriodic(k_iotWorkTimerPeriod),
+                       false);
+        }
+
         m_running = true;
         while (m_running) {
             const EventLoop_Run_Result status =
@@ -340,7 +366,7 @@ public:
         if (m_useIot) {
             AbortIfNot(m_iotConnectTimer.stop(), false);
 
-            if (m_iotConnected) {
+            if (m_iotHandle) {
                 IoTHubDeviceClient_LL_Destroy(m_iotHandle);
                 m_iotHandle = nullptr;
             }
@@ -515,7 +541,7 @@ public:
 
         m_iotMaxRetryInterval = max_retry_interval_s;
 
-        if (m_iotConnected) {
+        if (m_iotHandle) {
             AbortIfNeq(IoTHubDeviceClient_LL_SetRetryPolicy(
                         m_iotHandle, IOTHUB_CLIENT_RETRY_EXPONENTIAL_BACKOFF,
                         m_iotMaxRetryInterval),
@@ -553,7 +579,7 @@ public:
 
         m_keepalivePeriod = period_s;
 
-        if (m_iotConnected) {
+        if (m_iotHandle) {
             const int keepalive_option = period_s;
 
             AbortIfNeq(IoTHubDeviceClient_LL_SetOption(
@@ -564,7 +590,48 @@ public:
         return true;
     }
 
+    /**
+     * @brief Callback for notifications of properties update.
+     * @return True on success.
+     */
+    virtual bool notifyPropertiesUpdated()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Callback for notifications of synchronous method call.
+     * @return True on success.
+     */
+    virtual bool notifyMethodCalled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Callback for notifications of asynchronous method call.
+     * @return True on success.
+     */
+    virtual bool notifyAsyncMethodCalled()
+    {
+        return true;
+    }
+
+    /**
+     * @brief Callback for Azure IoT Central error handling.
+     * @return True on success.
+     */
+    virtual bool notifyIoTCentralError()
+    {
+        return true;
+    }
+
 private:
+    /*
+     * The period of the Azure IoT Central worker timer, in microseconds.
+     */
+    static constexpr uint32_t k_iotWorkTimerPeriod = 100000;
+
     /**
      * @brief Process signal callback.
      * @param[in] signo The signal number.
@@ -637,7 +704,7 @@ private:
      * @return True when no unexpected error occurs. If the connection did not
      *         succeed, True is returned and a retry timer is started.
      */
-    bool tryConnectIot()
+    virtual bool tryConnectIot()
     {
         const AZURE_SPHERE_PROV_RETURN_VALUE status =
             IoTHubDeviceClient_LL_CreateWithAzureSphereDeviceAuthProvisioning(
@@ -717,6 +784,15 @@ private:
         AbortIfNeq(IoTHubDeviceClient_LL_SetConnectionStatusCallback(
                     m_iotHandle, iotConnectionCallback, this),
                    IOTHUB_CLIENT_OK, false);
+        AbortIfNeq(IoTHubDeviceClient_LL_SetDeviceTwinCallback(
+                    m_iotHandle, iotDeviceTwinCallback, this),
+                   IOTHUB_CLIENT_OK, false);
+        AbortIfNeq(IoTHubDeviceClient_LL_SetMessageCallback(
+                    m_iotHandle, iotMessageCallback, this),
+                   IOTHUB_CLIENT_OK, false);
+        AbortIfNeq(IoTHubDeviceClient_LL_SetDeviceMethodCallback(
+                    m_iotHandle, iotDeviceMethodCallback, this),
+                   IOTHUB_CLIENT_OK, false);
 
         Log_Debug("Connected to Azure IoT Central\n");
 
@@ -726,7 +802,7 @@ private:
     /**
      * @brief IoT Central reconnection timer callback.
      */
-    void retryConnectIot()
+    virtual void retryConnectIot()
     {
         AbortIfNot(tryConnectIot());
     }
@@ -746,11 +822,145 @@ private:
 
         application->m_iotConnected =
             status == IOTHUB_CLIENT_CONNECTION_AUTHENTICATED;
-        if (!application->m_iotConnected) {
+        if (application->m_iotConnected) {
+            Log_Debug("Authenticated with Azure IoT Central\n");
+        } else {
             Log_Debug("Failed to communicate with Azure IoT Central: %s\n",
                       IOTHUB_CLIENT_CONNECTION_STATUS_REASONStrings(reason));
         }
     }
+
+    /**
+     * @brief IoT Central worker timer callback.
+     */
+    virtual void pollIot()
+    {
+        if (m_iotHandle) {
+            IoTHubDeviceClient_LL_DoWork(m_iotHandle);
+        }
+    }
+
+    // XXX: doxy
+    static void iotDeviceTwinCallback(
+        const DEVICE_TWIN_UPDATE_STATE update_state,
+        const unsigned char *const payload,
+        const size_t size,
+        void *const context)
+    {
+        Application *const application = static_cast<Application *>(context);
+
+        JsonParser json(payload, size);
+        JsonParser reported = json.get_object("$.reported");
+        JsonParser desired = json.get_object("$.desired");
+
+        for (auto cit = reported.cbegin(); cit != reported.cend(); cit++) {
+            const JsonString key = *cit;
+            const JsonString value = reported.get_string(cit);
+
+            Log_Debug("reported '%.*s' = '%.*s'\n",
+                      key.m_size, key.m_string,
+                      value.m_size, value.m_string);
+        }
+
+        for (auto cit = desired.cbegin(); cit != desired.cend(); cit++) {
+            const JsonString key = *cit;
+            const JsonString value = desired.get_string(cit);
+
+            Log_Debug("desired '%.*s' = '%.*s'\n",
+                      key.m_size, key.m_string,
+                      value.m_size, value.m_string);
+        }
+
+        // | Local   | Json
+        // | !dirty  | reported -> parse (initial value)
+        // | dirty   | reported -> nothing (overwritten)
+        // | !dirty  | desired  -> parse (new value)
+        // | dirty   | desired  -> ?
+
+        // XXX: revise how string properties are managed
+
+        AbortIfNot(application->notifyPropertiesUpdated());
+    }
+
+    // XXX: doxy
+    static IOTHUBMESSAGE_DISPOSITION_RESULT iotMessageCallback(
+        IOTHUB_MESSAGE_HANDLE message,
+        void *const context)
+    {
+        // XXX Application *const application = static_cast<Application *>(context);
+
+        return IOTHUBMESSAGE_ACCEPTED;
+    }
+
+    // XXX: doxy
+    static int iotDeviceMethodCallback(
+        const char *const method_name,
+        const unsigned char *const payload,
+        const size_t size,
+        unsigned char **const response,
+        size_t *const response_size,
+        void *const context)
+    {
+        // XXX Application *const application = static_cast<Application *>(context);
+
+        return -1;
+    }
+
+    // XXX: doxy
+    static void iotReportedStateCallback(
+        const int status_code,
+        void *const context)
+    {
+        // XXX Application *const application = static_cast<Application *>(context);
+    }
+
+    // XXX: doxy
+    static void iotEventAsyncCallback(
+        const IOTHUB_CLIENT_CONFIRMATION_RESULT result,
+        void *const context)
+    {
+        // XXX Application *const application = static_cast<Application *>(context);
+    }
+
+    /**
+     * @brief Register a property with the application.
+     * @param[in] property The property to register.
+     * @return True on success.
+     * @note The application must be initialized with the IoTCentral feature.
+     *       Properties must be registered prior to the first call to run().
+     */
+    virtual bool registerProperty(Value *const property)
+    {
+        AbortIfNot(m_useIot, false);
+        AbortIf(m_finalized, false);
+
+        AbortIfNot(m_properties.push_back(property), false);
+
+        return true;
+    }
+
+    /**
+     * @brief Register a telemetry metric with the application.
+     * @param[in] metric The metric to register.
+     * @return True on success.
+     * @note The application must be initialized with the IoTCentral feature.
+     *       Metrics must be registered prior to the first call to run().
+     */
+    virtual bool registerTelemetry(Value *const metric)
+    {
+        AbortIfNot(m_useIot, false);
+        AbortIf(m_finalized, false);
+
+        AbortIfNot(m_telemetry.push_back(metric), false);
+
+        return true;
+    }
+
+    /**
+     *  Whether the application has completed initialization and is ready to
+     *  run.
+     */
+    bool m_finalized;
 
     /**
      * The event loop.
@@ -800,6 +1010,21 @@ private:
     uint32_t m_iotMaxRetryInterval;
 
     /**
+     * The worker timer for handling of Azure IoT Central.
+     */
+    Timer m_iotWorkTimer;
+
+    /**
+     * A vector of properties shared with Azure IoT Central.
+     */
+    vector<Value *> m_properties;
+
+    /**
+     * A vector of telemetry metrics for Azure IoT Central.
+     */
+    vector<Value *> m_telemetry;
+
+    /**
      * Whether Azure IoT Central is used by the application.
      */
     bool m_useIot;
@@ -841,6 +1066,66 @@ private:
     static Application *g_application;
 
     friend EventLoop *getEventLoop();
+
+    template <typename T>
+    friend class Property;
+
+    template <typename T>
+    friend class Telemetry;
+};
+
+// XXX: doxy
+template <typename T>
+class Property : public TypedValue<T>
+{
+public:
+    Property(const char *const name) :
+        TypedValue<T>(name)
+    {
+    }
+
+    virtual ~Property()
+    {
+    }
+
+    // XXX doxy must be called before application.run
+    virtual bool init()
+    {
+        AbortIfNot(Application::g_application, false);
+
+        AbortIfNot(Application::g_application->registerProperty(this), false);
+
+        return true;
+    }
+
+    virtual void acknowledge()
+    {
+    }
+};
+
+// XXX: doxy
+template <typename T>
+class Telemetry : public TypedValue<T>
+{
+public:
+    Telemetry(const char *const name) :
+        TypedValue<T>(name)
+    {
+    }
+
+    virtual ~Telemetry()
+    {
+    }
+
+    // XXX doxy must be called before application.run
+    virtual bool init()
+    {
+        AbortIfNot(Application::g_application, false);
+
+        AbortIfNot(Application::g_application->registerTelemetry(this), false);
+
+        return true;
+    }
 };
 
 } /* namespace SpherePlusPlus */
