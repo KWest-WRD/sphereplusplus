@@ -149,3 +149,11 @@ EventLoop *getEventLoop()
 Application *Application::g_application = nullptr;
 
 } /* namespace SpherePlusPlus */
+
+/*
+ * Include the mjson parser as configured in internal.hh.
+ */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#include "mjson/src/mjson.c"
+#pragma GCC diagnostic pop

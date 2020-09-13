@@ -8,6 +8,14 @@
 
 #include <applibs/eventloop.h>
 
+#define MJSON_ENABLE_PRINT  0
+#define MJSON_ENABLE_RPC    0
+#define MJSON_ENABLE_BASE64 0
+#define MJSON_ENABLE_MERGE  0
+#define MJSON_ENABLE_PRETTY 0
+#define MJSON_ENABLE_NEXT   1
+#include "mjson/src/mjson.h"
+
 namespace SpherePlusPlus {
 
 /**
