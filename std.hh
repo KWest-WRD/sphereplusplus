@@ -4,7 +4,7 @@
  * @brief Standard library substitutions.
  */
 
- #pragma once
+#pragma once
 
 namespace std
 {

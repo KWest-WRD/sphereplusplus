@@ -4,9 +4,9 @@
  * @brief Generic abort macros.
  *
  * These macros are intended to print a simple backtrace on irrecoverable
- * errors, for example:
+ * errors, for example, with a file called test.cc:
  *
- * $ cat test.cc
+ * @code
  * #include "abort.hh"
  *
  * bool very_very_nested()
@@ -32,12 +32,17 @@
  *   AbortIfNot(nested(), 1);
  *   return 0;
  * }
+ * @endcode
  *
- * $ ./test
- * test.cc:5: AbortIfNot(1 == 0)
- * test.cc:11: AbortIfNot(very_very_nested())
- * test.cc:17: AbortIfNot(very_nested())
- * test.cc:23: AbortIfNot(nested())
+ * The backtrace looks like:
+ *
+ * @verbatim
+   $ ./test
+   test.cc:5: AbortIfNot(1 == 0)
+   test.cc:11: AbortIfNot(very_very_nested())
+   test.cc:17: AbortIfNot(very_nested())
+   test.cc:23: AbortIfNot(nested())
+   @endverbatim
  */
 
 #pragma once
@@ -128,7 +133,7 @@ static inline void __print_values(const float a, const float b)
  *
  * @note See AbortIfNot() for more details.
  */
-#define AbortIfNeq(a, b, ...) \
+#define AbortIfNeq(a, b, ...)                                           \
     do {                                                                \
         if (!__builtin_expect((a) == (b), 1)) {                         \
             Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
@@ -188,5 +193,65 @@ static inline void __print_values(const float a, const float b)
             exit(EXIT_FAILURE);                                         \
         }                                                               \
     } while(0);
+
+/**
+ * Assert that a condition is false, or warn if not.
+ *
+ * @param[in] cond The condition to assert "falseness" of.
+ *
+ * @return The evaluation of the condition.
+ */
+#define WarnIfNot(cond)                                                 \
+    ({                                                                  \
+        const auto __cond = (cond);                                     \
+        if (__builtin_expect(!__cond, 0)) {                             \
+            Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
+                    "AbortIfNot(" #cond ")\n");                         \
+        }                                                               \
+        __cond;                                                         \
+    })
+
+/**
+ * Assert that a condition is true, or warn if not.
+ *
+ * @param[in] cond The condition to assert.
+ *
+ * @return The evaluation of the condition.
+ *
+ * @note See WarnIf() for more details.
+ */
+#define WarnIf(cond)                                                    \
+    ({                                                                  \
+        const auto __cond = (cond);                                     \
+        if (__builtin_expect(!!__cond, 0)) {                            \
+            Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
+                    "AbortIf(" #cond ")\n");                            \
+        }                                                               \
+        __cond;                                                         \
+    })
+
+/**
+ * Assert that two values are equal, or warn if not.
+ *
+ * @param[in] a The first value.
+ * @param[in] b The second value.
+ *
+ * @return Whether the values are equal.
+ *
+ * @note See WarnIfNot() for more details.
+ */
+#define WarnIfNeq(a, b)                                                 \
+    ({                                                                  \
+        const auto __a = (a);                                           \
+        const auto __b = (b);                                           \
+        const bool __cond = __a == __b;                                 \
+        if (!__builtin_expect(__cond, 1)) {                             \
+            Log_Debug(__FILE__ ":" __stringify(__LINE__) ": "           \
+                    "AbortIfNeq(" #a ", " #b " (values: ");             \
+            __print_values(__a, __b);                                   \
+            Log_Debug("))\n");                                          \
+        }                                                               \
+        __cond;                                                         \
+    })
 
 } /* namespace SpherePlusPlus */
